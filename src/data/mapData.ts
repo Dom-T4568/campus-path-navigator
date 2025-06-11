@@ -1,12 +1,12 @@
-
 export const ROOMS = [
-  "Auditorium 2", "Lab 2", "Lab 1", "Server Room", "Step-l2", "Boys RestRoom",
+  "Auditorium 2", "Lab 2", "Lab 1", "Lab 3", "Lab 4", "Lab 5", "Server Room", "Step-l2", "Boys RestRoom",
   "Girls RestRoom", "VIP Pantry", "VIP Waiting", "Pantry", "VIP Dining", 
   "Chairman Office", "Principle Office", "OAT", "AIDS", "Green Room 1", 
   "Green Room 2", "Admin Office", "Reception", "Master Board Room", 
   "OAK leaf", "Exam Hall", "Meeting Room", "Transport office", 
   "Zig Zag Steps", "Admission Office", "Falcon Hall", "Harmony", 
-  "CDC", "Symphony", "Waiting Hall", "Step-l5", "PT Room", "Store Room"
+  "CDC", "Symphony", "Waiting Hall", "Step-l5", "PT Room", "Store Room",
+  "seStep", "gstep", "adsteps", "cdsteps", "vsteps"
 ];
 
 // Waypoint coordinates (manually mapped to the blueprint)
@@ -14,6 +14,9 @@ export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "Auditorium 2": { x: 145, y: 125 },
   "Lab 2": { x: 350, y: 125 },
   "Lab 1": { x: 550, y: 125 },
+  "Lab 3": { x: 650, y: 125 },
+  "Lab 4": { x: 750, y: 125 },
+  "Lab 5": { x: 850, y: 125 },
   "Server Room": { x: 800, y: 180 },
   "Boys RestRoom": { x: 800, y: 250 },
   "Girls RestRoom": { x: 800, y: 320 },
@@ -45,7 +48,12 @@ export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "Step-l5": { x: 1200, y: 180 },
   "PT Room": { x: 350, y: 400 },
   "Store Room": { x: 450, y: 400 },
-  "Auditorium 1": { x: 145, y: 470 }
+  "Auditorium 1": { x: 145, y: 470 },
+  "seStep": { x: 600, y: 300 },
+  "gstep": { x: 700, y: 300 },
+  "adsteps": { x: 800, y: 540 },
+  "cdsteps": { x: 1100, y: 540 },
+  "vsteps": { x: 1000, y: 300 }
 };
 
 // Graph representing connections between rooms (distances in arbitrary units)
@@ -63,11 +71,28 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   },
   "Lab 1": {
     "Lab 2": 20,
+    "Lab 3": 10,
     "AIDS": 15,
     "Server Room": 25
   },
+  "Lab 3": {
+    "Lab 1": 10,
+    "Lab 4": 10,
+    "seStep": 20
+  },
+  "Lab 4": {
+    "Lab 3": 10,
+    "Lab 5": 10,
+    "gstep": 20
+  },
+  "Lab 5": {
+    "Lab 4": 10,
+    "Server Room": 15,
+    "vsteps": 20
+  },
   "Server Room": {
     "Lab 1": 25,
+    "Lab 5": 15,
     "Boys RestRoom": 10,
     "VIP Pantry": 15,
     "AIDS": 20
@@ -115,12 +140,14 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "OAT": {
     "Lab 2": 20,
     "Step-l2": 10,
-    "PT Room": 15
+    "PT Room": 15,
+    "seStep": 25
   },
   "AIDS": {
     "Lab 1": 15,
     "Server Room": 20,
-    "Step-l2": 20
+    "Step-l2": 20,
+    "seStep": 15
   },
   "Green Room 1": {
     "Girls RestRoom": 10,
@@ -130,7 +157,8 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "Green Room 2": {
     "Green Room 1": 10,
     "Exam Hall": 15,
-    "Store Room": 35
+    "Store Room": 35,
+    "adsteps": 10
   },
   "Admin Office": {
     "Pantry": 15,
@@ -150,7 +178,8 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "OAK leaf": {
     "Principle Office": 15,
     "Master Board Room": 10,
-    "Waiting Hall": 10
+    "Waiting Hall": 10,
+    "vsteps": 15
   },
   "Exam Hall": {
     "Green Room 2": 15,
@@ -160,7 +189,8 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "Meeting Room": {
     "Reception": 10,
     "Exam Hall": 10,
-    "Falcon Hall": 15
+    "Falcon Hall": 15,
+    "cdsteps": 15
   },
   "Transport office": {
     "Reception": 10,
@@ -169,17 +199,20 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   },
   "Zig Zag Steps": {
     "Admission Office": 17,
-    "Green Room 2": 25
+    "Green Room 2": 25,
+    "adsteps": 8
   },
   "Admission Office": {
     "Zig Zag Steps": 17,
     "Falcon Hall": 10,
-    "Exam Hall": 15
+    "Exam Hall": 15,
+    "adsteps": 12
   },
   "Falcon Hall": {
     "Admission Office": 10,
     "Meeting Room": 15,
-    "Harmony": 15
+    "Harmony": 15,
+    "cdsteps": 10
   },
   "Harmony": {
     "Falcon Hall": 15,
@@ -193,13 +226,15 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   },
   "Symphony": {
     "Harmony": 10,
-    "CDC": 10
+    "CDC": 10,
+    "cdsteps": 12
   },
   "Waiting Hall": {
     "Master Board Room": 15,
     "OAK leaf": 10,
     "CDC": 15,
-    "Step-l5": 15
+    "Step-l5": 15,
+    "vsteps": 20
   },
   "Step-l2": {
     "Auditorium 2": 25,
@@ -221,5 +256,32 @@ export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "Auditorium 1": {
     "Auditorium 2": 35,
     "PT Room": 25
+  },
+  "seStep": {
+    "Lab 3": 20,
+    "OAT": 25,
+    "AIDS": 15,
+    "gstep": 10
+  },
+  "gstep": {
+    "Lab 4": 20,
+    "seStep": 10,
+    "vsteps": 15
+  },
+  "adsteps": {
+    "Green Room 2": 10,
+    "Zig Zag Steps": 8,
+    "Admission Office": 12
+  },
+  "cdsteps": {
+    "Meeting Room": 15,
+    "Falcon Hall": 10,
+    "Symphony": 12
+  },
+  "vsteps": {
+    "Lab 5": 20,
+    "OAK leaf": 15,
+    "Waiting Hall": 20,
+    "gstep": 15
   }
 };
