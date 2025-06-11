@@ -1,258 +1,127 @@
-
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { Navigation, MapPin, Route } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { PathfindingEngine } from '../utils/pathfinding';
 import { ROOMS, WAYPOINTS, GRAPH } from '../data/mapData';
+import LoadingPage from './LoadingPage';
 
 const CampusMap = () => {
-  const [startRoom, setStartRoom] = useState('');
-  const [destinationRoom, setDestinationRoom] = useState('');
-  const [currentPath, setCurrentPath] = useState<string[]>([]);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  const pathfinding = new PathfindingEngine(GRAPH);
+  const [isLoading, setIsLoading] = useState(true);
+  const [startRoom, setStartRoom] = useState<string | undefined>(undefined);
+  const [endRoom, setEndRoom] = useState<string | undefined>(undefined);
+  const [path, setPath] = useState<string[]>([]);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      setImageLoaded(true);
-      drawMap();
-    };
-    img.src = '/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png';
-    imageRef.current = img;
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (imageLoaded) {
-      drawMap();
-    }
-  }, [imageLoaded, currentPath, scale, offset]);
-
-  const drawMap = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    const img = imageRef.current;
-    
-    if (!canvas || !ctx || !img) return;
-
-    // Set canvas size
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 200; // Account for controls
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate image scaling to fit canvas
-    const imageAspect = img.width / img.height;
-    const canvasAspect = canvas.width / canvas.height;
-    
-    let drawWidth, drawHeight;
-    if (imageAspect > canvasAspect) {
-      drawWidth = canvas.width * scale;
-      drawHeight = (canvas.width / imageAspect) * scale;
+  const drawPath = (shortestPath: string[]) => {
+    if (shortestPath.length > 0) {
+      setPath(shortestPath);
     } else {
-      drawHeight = canvas.height * scale;
-      drawWidth = (canvas.height * imageAspect) * scale;
+      alert("No path found between the selected rooms.");
     }
-
-    const drawX = (canvas.width - drawWidth) / 2 + offset.x;
-    const drawY = (canvas.height - drawHeight) / 2 + offset.y;
-
-    // Draw blueprint image
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-
-    // Draw waypoints
-    Object.entries(WAYPOINTS).forEach(([roomId, point]) => {
-      const x = drawX + (point.x / img.width) * drawWidth;
-      const y = drawY + (point.y / img.height) * drawHeight;
-      
-      // Draw waypoint circle
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, 2 * Math.PI);
-      ctx.fillStyle = currentPath.includes(roomId) ? '#ef4444' : '#2563eb';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    });
-
-    // Draw path
-    if (currentPath.length > 1) {
-      drawAnimatedPath(ctx, currentPath, drawX, drawY, drawWidth, drawHeight, img);
-    }
-  };
-
-  const drawAnimatedPath = (
-    ctx: CanvasRenderingContext2D,
-    path: string[],
-    drawX: number,
-    drawY: number,
-    drawWidth: number,
-    drawHeight: number,
-    img: HTMLImageElement
-  ) => {
-    ctx.strokeStyle = '#2563eb';
-    ctx.lineWidth = 4;
-    ctx.setLineDash([10, 5]);
-    ctx.lineDashOffset = -Date.now() / 50; // Animated dash
-
-    ctx.beginPath();
-    path.forEach((roomId, index) => {
-      const point = WAYPOINTS[roomId];
-      if (point) {
-        const x = drawX + (point.x / img.width) * drawWidth;
-        const y = drawY + (point.y / img.height) * drawHeight;
-        
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-    });
-    ctx.stroke();
-
-    // Draw directional arrows
-    for (let i = 0; i < path.length - 1; i++) {
-      const current = WAYPOINTS[path[i]];
-      const next = WAYPOINTS[path[i + 1]];
-      
-      if (current && next) {
-        const x1 = drawX + (current.x / img.width) * drawWidth;
-        const y1 = drawY + (current.y / img.height) * drawHeight;
-        const x2 = drawX + (next.x / img.width) * drawWidth;
-        const y2 = drawY + (next.y / img.height) * drawHeight;
-        
-        drawArrow(ctx, x1, y1, x2, y2);
-      }
-    }
-  };
-
-  const drawArrow = (
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number
-  ) => {
-    const midX = (x1 + x2) / 2;
-    const midY = (y1 + y2) / 2;
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const arrowSize = 12;
-
-    ctx.save();
-    ctx.translate(midX, midY);
-    ctx.rotate(angle);
-    
-    ctx.fillStyle = '#2563eb';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-arrowSize, -arrowSize / 2);
-    ctx.lineTo(-arrowSize, arrowSize / 2);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.restore();
-  };
-
-  const findPath = async () => {
-    if (!startRoom || !destinationRoom) return;
-    
-    setIsCalculating(true);
-    
-    // Simulate processing time for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const path = pathfinding.findShortestPath(startRoom, destinationRoom);
-    setCurrentPath(path);
-    setIsCalculating(false);
   };
 
   const clearPath = () => {
-    setCurrentPath([]);
-    setStartRoom('');
-    setDestinationRoom('');
+    setPath([]);
   };
 
-  const handleZoom = (zoomIn: boolean) => {
-    setScale(prev => {
-      const newScale = zoomIn ? prev * 1.2 : prev / 1.2;
-      return Math.max(0.5, Math.min(3, newScale));
-    });
+  const handleFindPath = () => {
+    if (startRoom && endRoom) {
+      const pathfinder = new PathfindingEngine(GRAPH);
+      const shortestPath = pathfinder.findShortestPath(startRoom, endRoom);
+      drawPath(shortestPath);
+    } else {
+      alert("Please select both a start and end room.");
+    }
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom((prevZoom) => Math.max(0.5, Math.min(3, prevZoom * scaleFactor)));
+  };
+
+  if (isLoading) {
+    return <LoadingPage />;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header Controls */}
-      <div className="bg-white shadow-lg border-b border-gray-200 p-4">
+    <div className="min-h-screen bg-gray-100">
+      {/* Navigation Controls */}
+      <div className="bg-white shadow-md p-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Navigation className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Campus Navigator</h1>
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">KPR</span>
+              </div>
+              <h1 className="text-xl font-bold text-gray-800">Campus Navigation</h1>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-green-600" />
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="flex gap-2">
                 <Select value={startRoom} onValueChange={setStartRoom}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Select start room" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROOMS.map(room => (
-                      <SelectItem key={room} value={room}>{room}</SelectItem>
+                    {ROOMS.map((room) => (
+                      <SelectItem key={room} value={room}>
+                        {room}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-red-600" />
-                <Select value={destinationRoom} onValueChange={setDestinationRoom}>
+                <Select value={endRoom} onValueChange={setEndRoom}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROOMS.map(room => (
-                      <SelectItem key={room} value={room}>{room}</SelectItem>
+                    {ROOMS.map((room) => (
+                      <SelectItem key={room} value={room}>
+                        {room}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex gap-2">
-                <Button 
-                  onClick={findPath}
-                  disabled={!startRoom || !destinationRoom || isCalculating}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isCalculating ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                      Finding...
-                    </div>
-                  ) : (
-                    <>
-                      <Route className="h-4 w-4 mr-2" />
-                      Find Route
-                    </>
-                  )}
+                <Button onClick={handleFindPath} disabled={!startRoom || !endRoom}>
+                  Find Path
                 </Button>
-                
-                <Button 
-                  onClick={clearPath}
-                  variant="outline"
-                  disabled={!currentPath.length}
-                >
+                <Button variant="outline" onClick={clearPath}>
                   Clear
                 </Button>
               </div>
@@ -261,54 +130,93 @@ const CampusMap = () => {
         </div>
       </div>
 
-      {/* Map Canvas */}
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          className="block cursor-move"
-          style={{ background: '#f8fafc' }}
-        />
-        
-        {/* Zoom Controls */}
-        <Card className="absolute top-4 right-4 p-2">
-          <div className="flex flex-col gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleZoom(true)}
-              className="h-8 w-8 p-0"
+      {/* Map Container */}
+      <div className="relative h-[calc(100vh-140px)]">
+        <svg
+          ref={svgRef}
+          className="w-full h-full cursor-move"
+          style={{ backgroundColor: '#f8f9fa' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
             >
-              +
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleZoom(false)}
-              className="h-8 w-8 p-0"
-            >
-              −
-            </Button>
-          </div>
-        </Card>
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="#2563eb"
+              />
+            </marker>
+          </defs>
 
-        {/* Path Info */}
-        {currentPath.length > 0 && (
-          <Card className="absolute bottom-4 left-4 p-4 bg-white/95 backdrop-blur">
-            <div className="text-sm">
-              <div className="font-semibold text-gray-900 mb-2">Route Found</div>
-              <div className="text-gray-600">
-                {currentPath.length} waypoints • {startRoom} → {destinationRoom}
-              </div>
-            </div>
-          </Card>
-        )}
+          <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+            <image
+              href="/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png"
+              width="1200"
+              height="800"
+              className="max-w-none"
+            />
+
+            {Object.entries(WAYPOINTS).map(([room, coords]) => (
+              <g key={room}>
+                <circle
+                  cx={coords.x}
+                  cy={coords.y}
+                  r="8"
+                  fill="#ef4444"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  className="hover:fill-red-600 cursor-pointer"
+                />
+                <text
+                  x={coords.x}
+                  y={coords.y - 15}
+                  textAnchor="middle"
+                  className="text-xs font-medium fill-gray-800"
+                  style={{ fontSize: '10px' }}
+                >
+                  {room}
+                </text>
+              </g>
+            ))}
+
+            {path.length > 0 && (
+              <g>
+                {path.slice(0, -1).map((room, index) => {
+                  const start = WAYPOINTS[room];
+                  const end = WAYPOINTS[path[index + 1]];
+                  return (
+                    <line
+                      key={`${room}-${path[index + 1]}`}
+                      x1={start.x}
+                      y1={start.y}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke="#2563eb"
+                      strokeWidth="4"
+                      strokeDasharray="8,4"
+                      markerEnd="url(#arrowhead)"
+                      className="animate-pulse"
+                    />
+                  );
+                })}
+              </g>
+            )}
+          </g>
+        </svg>
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm">© 2025 Cloud Net Park. All Rights Reserved.</p>
-        </div>
+      <footer className="bg-gray-800 text-white text-center py-4">
+        <p className="text-sm">© 2025 Cloud Net Park. All Rights Reserved.</p>
       </footer>
     </div>
   );
