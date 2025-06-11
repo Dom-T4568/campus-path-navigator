@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PathfindingEngine } from '../utils/pathfinding';
 import { ROOMS, WAYPOINTS, GRAPH } from '../data/mapData';
 import LoadingPage from './LoadingPage';
+import { MapPin, Navigation } from 'lucide-react';
 
 const CampusMap = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +89,7 @@ const CampusMap = () => {
       const angle = Math.atan2(dy, dx);
       
       // Number of minus symbols to place along the line
-      const symbolCount = Math.floor(distance / 15); // One minus every 15 pixels
+      const symbolCount = Math.floor(distance / 20); // Slightly more spacing
       
       for (let j = 0; j <= symbolCount; j++) {
         const ratio = j / symbolCount;
@@ -99,13 +100,14 @@ const CampusMap = () => {
           <text
             key={`minus-${i}-${j}`}
             x={x}
-            y={y + 2}
+            y={y + 3}
             textAnchor="middle"
-            className="text-blue-600 font-bold animate-pulse"
+            className="fill-blue-500 font-bold animate-pulse"
             style={{ 
-              fontSize: '16px',
+              fontSize: '24px', // Increased size
               transform: `rotate(${angle}rad)`,
-              transformOrigin: `${x}px ${y}px`
+              transformOrigin: `${x}px ${y}px`,
+              filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))'
             }}
           >
             −
@@ -122,23 +124,34 @@ const CampusMap = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navigation Controls */}
-      <div className="bg-white shadow-md p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">KPR</span>
-              </div>
-              <h1 className="text-xl font-bold text-gray-800">Campus Navigation</h1>
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Dark Sidebar */}
+      <div className="w-80 bg-gray-800 text-white flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex items-center gap-3 mb-2">
+            <MapPin className="w-6 h-6 text-blue-400" />
+            <h1 className="text-xl font-bold">College Blueprint Navigator</h1>
+          </div>
+        </div>
+
+        {/* Navigation Section */}
+        <div className="p-6 flex-1">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Navigation className="w-5 h-5 text-blue-400" />
+              <h2 className="text-lg font-semibold">Navigation</h2>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex gap-2">
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-blue-400" />
+                  <label className="text-sm font-medium">Starting Point</label>
+                </div>
                 <Select value={startRoom} onValueChange={setStartRoom}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select start room" />
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Select starting point" />
                   </SelectTrigger>
                   <SelectContent>
                     {ROOMS.map((room) => (
@@ -148,9 +161,15 @@ const CampusMap = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-red-400" />
+                  <label className="text-sm font-medium">Destination</label>
+                </div>
                 <Select value={endRoom} onValueChange={setEndRoom}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
                   <SelectContent>
@@ -163,70 +182,121 @@ const CampusMap = () => {
                 </Select>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleFindPath} disabled={!startRoom || !endRoom}>
-                  Find Path
-                </Button>
-                <Button variant="outline" onClick={clearPath}>
-                  Clear
-                </Button>
-              </div>
+              <Button 
+                onClick={handleFindPath} 
+                disabled={!startRoom || !endRoom}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+              >
+                Find Route
+              </Button>
+
+              <Button 
+                variant="outline" 
+                onClick={clearPath}
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Clear
+              </Button>
             </div>
           </div>
+
+          {/* How to Use Section */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">How to Use</h3>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-1">•</span>
+                <span>Select a starting point from the dropdown</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-1">•</span>
+                <span>Select a destination from the dropdown</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-1">•</span>
+                <span>Click "Find Route" to calculate the path</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-700">
+          <p className="text-xs text-gray-400">© 2025 College Blueprint Navigator • Interactive Campus Navigation</p>
         </div>
       </div>
 
-      {/* Map Container */}
-      <div className="relative h-[calc(100vh-140px)]">
-        <svg
-          ref={svgRef}
-          className="w-full h-full cursor-move"
-          style={{ backgroundColor: '#f8f9fa' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onWheel={handleWheel}
-        >
-          <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
-            <image
-              href="/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png"
-              width="1200"
-              height="800"
-              className="max-w-none"
-            />
+      {/* Main Map Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Status Bar */}
+        <div className="bg-white shadow-sm p-4 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {startRoom && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Start: {startRoom}</span>
+                </div>
+              )}
+              {endRoom && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Destination: {endRoom}</span>
+                </div>
+              )}
+            </div>
+            <div className="text-sm text-gray-500">
+              Use mouse wheel to zoom • Drag to pan
+            </div>
+          </div>
+        </div>
 
-            {Object.entries(WAYPOINTS).map(([room, coords]) => (
-              <g key={room}>
-                <circle
-                  cx={coords.x}
-                  cy={coords.y}
-                  r="8"
-                  fill="#ef4444"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  className="hover:fill-red-600 cursor-pointer"
-                />
-                <text
-                  x={coords.x}
-                  y={coords.y - 15}
-                  textAnchor="middle"
-                  className="text-xs font-medium fill-gray-800"
-                  style={{ fontSize: '10px' }}
-                >
-                  {room}
-                </text>
-              </g>
-            ))}
+        {/* Map Container */}
+        <div className="flex-1 relative bg-gray-50">
+          <svg
+            ref={svgRef}
+            className="w-full h-full cursor-move"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onWheel={handleWheel}
+          >
+            <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+              <image
+                href="/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png"
+                width="1200"
+                height="800"
+                className="max-w-none"
+              />
 
-            {renderPathWithMinusSymbols()}
-          </g>
-        </svg>
+              {Object.entries(WAYPOINTS).map(([room, coords]) => (
+                <g key={room}>
+                  <circle
+                    cx={coords.x}
+                    cy={coords.y}
+                    r="8"
+                    fill="#ef4444"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    className="hover:fill-red-600 cursor-pointer"
+                  />
+                  <text
+                    x={coords.x}
+                    y={coords.y - 15}
+                    textAnchor="middle"
+                    className="text-xs font-medium fill-gray-800"
+                    style={{ fontSize: '10px' }}
+                  >
+                    {room}
+                  </text>
+                </g>
+              ))}
+
+              {renderPathWithMinusSymbols()}
+            </g>
+          </svg>
+        </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white text-center py-4">
-        <p className="text-sm">© 2025 Cloud Net Park. All Rights Reserved.</p>
-      </footer>
     </div>
   );
 };
