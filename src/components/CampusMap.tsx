@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,51 @@ const CampusMap = () => {
     setZoom((prevZoom) => Math.max(0.5, Math.min(3, prevZoom * scaleFactor)));
   };
 
+  const renderPathWithMinusSymbols = () => {
+    if (path.length === 0) return null;
+
+    const pathElements = [];
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const start = WAYPOINTS[path[i]];
+      const end = WAYPOINTS[path[i + 1]];
+      
+      // Calculate the distance and angle between points
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      
+      // Number of minus symbols to place along the line
+      const symbolCount = Math.floor(distance / 15); // One minus every 15 pixels
+      
+      for (let j = 0; j <= symbolCount; j++) {
+        const ratio = j / symbolCount;
+        const x = start.x + dx * ratio;
+        const y = start.y + dy * ratio;
+        
+        pathElements.push(
+          <text
+            key={`minus-${i}-${j}`}
+            x={x}
+            y={y + 2}
+            textAnchor="middle"
+            className="text-blue-600 font-bold animate-pulse"
+            style={{ 
+              fontSize: '16px',
+              transform: `rotate(${angle}rad)`,
+              transformOrigin: `${x}px ${y}px`
+            }}
+          >
+            −
+          </text>
+        );
+      }
+    }
+
+    return <g>{pathElements}</g>;
+  };
+
   if (isLoading) {
     return <LoadingPage />;
   }
@@ -141,22 +187,6 @@ const CampusMap = () => {
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
         >
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="#2563eb"
-              />
-            </marker>
-          </defs>
-
           <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
             <image
               href="/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png"
@@ -188,28 +218,7 @@ const CampusMap = () => {
               </g>
             ))}
 
-            {path.length > 0 && (
-              <g>
-                {path.slice(0, -1).map((room, index) => {
-                  const start = WAYPOINTS[room];
-                  const end = WAYPOINTS[path[index + 1]];
-                  return (
-                    <line
-                      key={`${room}-${path[index + 1]}`}
-                      x1={start.x}
-                      y1={start.y}
-                      x2={end.x}
-                      y2={end.y}
-                      stroke="#2563eb"
-                      strokeWidth="4"
-                      strokeDasharray="8,4"
-                      markerEnd="url(#arrowhead)"
-                      className="animate-pulse"
-                    />
-                  );
-                })}
-              </g>
-            )}
+            {renderPathWithMinusSymbols()}
           </g>
         </svg>
       </div>
