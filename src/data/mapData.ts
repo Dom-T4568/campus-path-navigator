@@ -1,3 +1,4 @@
+
 export const ROOMS = [
   "Auditorium 2", "Lab 2", "Lab 1", "Lab 3", "Lab 4", "Lab 5", "Server Room", "Step-l2", "Boys RestRoom",
   "Girls RestRoom", "VIP Pantry", "VIP Waiting", "Pantry", "VIP Dining", 
@@ -9,7 +10,7 @@ export const ROOMS = [
   "seStep", "gstep", "adsteps", "cdsteps", "vsteps"
 ];
 
-// Waypoint coordinates (manually mapped to the blueprint)
+// Enhanced waypoint coordinates with corridor intersections
 export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "Auditorium 1": { x: 235, y: 555 },
   "Auditorium 2": { x: 235, y: 160 },
@@ -53,235 +54,272 @@ export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "gstep": { x: 495, y: 360 },
   "adsteps": { x: 875, y: 360 },
   "cdsteps": { x: 950, y: 505 },
-  "vsteps": { x: 940, y: 210 }
+  "vsteps": { x: 940, y: 210 },
+  
+  // Additional corridor waypoints to ensure proper navigation
+  "corridor_upper_main": { x: 600, y: 210 },
+  "corridor_middle_main": { x: 600, y: 360 },
+  "corridor_lower_main": { x: 600, y: 505 },
+  "corridor_left_vertical": { x: 320, y: 360 },
+  "corridor_right_vertical": { x: 875, y: 360 },
+  "corridor_center_hub": { x: 600, y: 360 }
 };
 
-// Graph representing connections between rooms (distances in arbitrary units)
+// Enhanced graph with better corridor connections
 export const GRAPH: { [key: string]: { [key: string]: number } } = {
   "Auditorium 2": {
     "Lab 2": 20,
-    "Step-l2": 25,
-    "Auditorium 1": 35
+    "corridor_upper_main": 30
   },
   "Lab 2": {
     "Auditorium 2": 20,
     "Lab 1": 20,
-    "Step-l2": 15,
-    "OAT": 20
+    "Server Room": 15,
+    "corridor_left_vertical": 15
   },
   "Lab 1": {
     "Lab 2": 20,
-    "Lab 3": 10,
-    "AIDS": 15,
-    "Server Room": 25
+    "corridor_upper_main": 15,
+    "AIDS": 15
   },
   "Lab 3": {
-    "Lab 1": 10,
-    "Lab 4": 10,
-    "seStep": 20
+    "corridor_left_vertical": 10,
+    "Lab 4": 15,
+    "OAT": 10
   },
   "Lab 4": {
-    "Lab 3": 10,
-    "Lab 5": 10,
-    "gstep": 20
+    "Lab 3": 15,
+    "Lab 5": 15,
+    "corridor_left_vertical": 15
   },
   "Lab 5": {
-    "Lab 4": 10,
-    "Server Room": 15,
-    "vsteps": 20
+    "Lab 4": 15,
+    "corridor_lower_main": 20,
+    "Step-l5": 15
   },
   "Server Room": {
-    "Lab 1": 25,
-    "Lab 5": 15,
-    "Boys RestRoom": 10,
-    "VIP Pantry": 15,
-    "AIDS": 20
+    "Lab 2": 15,
+    "corridor_upper_main": 25
   },
   "Boys RestRoom": {
-    "Server Room": 10,
-    "Girls RestRoom": 10,
-    "VIP Waiting": 15
+    "corridor_upper_main": 10,
+    "Girls RestRoom": 20
   },
   "Girls RestRoom": {
-    "Boys RestRoom": 10,
-    "Pantry": 15,
-    "Green Room 1": 10
+    "Boys RestRoom": 20,
+    "corridor_upper_main": 15
   },
   "VIP Pantry": {
-    "Server Room": 15,
-    "VIP Waiting": 10,
-    "VIP Dining": 10
+    "corridor_upper_main": 20,
+    "VIP Waiting": 10
   },
   "VIP Waiting": {
-    "Boys RestRoom": 15,
     "VIP Pantry": 10,
-    "Chairman Office": 10
+    "vsteps": 15
   },
   "Pantry": {
-    "Girls RestRoom": 15,
-    "Principle Office": 10,
-    "Admin Office": 15
+    "corridor_upper_main": 30,
+    "Principle Office": 15
   },
   "VIP Dining": {
-    "VIP Pantry": 10,
     "Chairman Office": 10,
     "Master Board Room": 10
   },
   "Chairman Office": {
-    "VIP Waiting": 10,
     "VIP Dining": 10,
     "Principle Office": 10
   },
   "Principle Office": {
-    "Pantry": 10,
     "Chairman Office": 10,
+    "Pantry": 15,
     "OAK leaf": 15
   },
   "OAT": {
-    "Lab 2": 20,
-    "Step-l2": 10,
-    "PT Room": 15,
-    "seStep": 25
+    "Lab 3": 10,
+    "corridor_left_vertical": 5,
+    "corridor_middle_main": 20
   },
   "AIDS": {
     "Lab 1": 15,
-    "Server Room": 20,
-    "Step-l2": 20,
-    "seStep": 15
+    "corridor_upper_main": 20,
+    "corridor_middle_main": 25
   },
   "Green Room 1": {
-    "Girls RestRoom": 10,
-    "Green Room 2": 10,
-    "Admin Office": 15
+    "corridor_middle_main": 20,
+    "Green Room 2": 15
   },
   "Green Room 2": {
-    "Green Room 1": 10,
-    "Exam Hall": 15,
-    "Store Room": 35,
-    "adsteps": 10
+    "Green Room 1": 15,
+    "corridor_middle_main": 15,
+    "adsteps": 15
   },
   "Admin Office": {
-    "Pantry": 15,
-    "Green Room 1": 15,
-    "Reception": 10
+    "corridor_right_vertical": 10,
+    "Reception": 20
   },
   "Reception": {
-    "Admin Office": 10,
-    "Meeting Room": 10,
-    "Transport office": 10
+    "Admin Office": 20,
+    "Master Board Room": 15,
+    "corridor_right_vertical": 15
   },
   "Master Board Room": {
     "VIP Dining": 10,
     "OAK leaf": 10,
-    "Waiting Hall": 15
+    "Reception": 15
   },
   "OAK leaf": {
     "Principle Office": 15,
     "Master Board Room": 10,
-    "Waiting Hall": 10,
-    "vsteps": 15
-  },
-  "Exam Hall": {
-    "Green Room 2": 15,
-    "Meeting Room": 10,
-    "Admission Office": 15
-  },
-  "Meeting Room": {
-    "Reception": 10,
-    "Exam Hall": 10,
-    "Falcon Hall": 15,
-    "cdsteps": 15
-  },
-  "Transport office": {
-    "Reception": 10,
-    "Harmony": 15,
-    "CDC": 10
-  },
-  "Zig Zag Steps": {
-    "Admission Office": 17,
-    "Green Room 2": 25,
-    "adsteps": 8
-  },
-  "Admission Office": {
-    "Zig Zag Steps": 17,
-    "Falcon Hall": 10,
-    "Exam Hall": 15,
-    "adsteps": 12
-  },
-  "Falcon Hall": {
-    "Admission Office": 10,
-    "Meeting Room": 15,
-    "Harmony": 15,
-    "cdsteps": 10
-  },
-  "Harmony": {
-    "Falcon Hall": 15,
-    "Transport office": 15,
-    "Symphony": 10
-  },
-  "CDC": {
-    "Transport office": 10,
-    "Symphony": 10,
-    "Waiting Hall": 15
-  },
-  "Symphony": {
-    "Harmony": 10,
-    "CDC": 10,
-    "cdsteps": 12
-  },
-  "Waiting Hall": {
-    "Master Board Room": 15,
-    "OAK leaf": 10,
-    "CDC": 15,
-    "Step-l5": 15,
     "vsteps": 20
   },
+  "Exam Hall": {
+    "corridor_right_vertical": 15,
+    "Meeting Room": 15,
+    "adsteps": 15
+  },
+  "Meeting Room": {
+    "Exam Hall": 15,
+    "corridor_right_vertical": 20,
+    "vsteps": 15
+  },
+  "Transport office": {
+    "corridor_lower_main": 10,
+    "Zig Zag Steps": 15
+  },
+  "Zig Zag Steps": {
+    "Transport office": 15,
+    "Admission Office": 15,
+    "corridor_lower_main": 15
+  },
+  "Admission Office": {
+    "Zig Zag Steps": 15,
+    "Falcon Hall": 15,
+    "adsteps": 20
+  },
+  "Falcon Hall": {
+    "Admission Office": 15,
+    "corridor_lower_main": 20,
+    "cdsteps": 15
+  },
+  "Harmony": {
+    "CDC": 10,
+    "corridor_lower_main": 25
+  },
+  "CDC": {
+    "Harmony": 10,
+    "Symphony": 15,
+    "corridor_lower_main": 20
+  },
+  "Symphony": {
+    "CDC": 15,
+    "cdsteps": 20
+  },
+  "Waiting Hall": {
+    "Reception": 25,
+    "corridor_right_vertical": 20
+  },
   "Step-l2": {
-    "Auditorium 2": 25,
-    "Lab 2": 15,
-    "OAT": 10,
-    "AIDS": 20
+    "corridor_upper_main": 15,
+    "corridor_middle_main": 20
   },
   "Step-l5": {
-    "Waiting Hall": 15
+    "Lab 5": 15,
+    "corridor_lower_main": 20
   },
   "PT Room": {
-    "OAT": 15,
+    "corridor_lower_main": 10,
     "Store Room": 10
   },
   "Store Room": {
     "PT Room": 10,
-    "Green Room 2": 35
+    "corridor_lower_main": 15
   },
   "Auditorium 1": {
-    "Auditorium 2": 35,
-    "PT Room": 25
+    "seStep": 25,
+    "corridor_lower_main": 35
   },
   "seStep": {
-    "Lab 3": 20,
-    "OAT": 25,
-    "AIDS": 15,
-    "gstep": 10
+    "Auditorium 1": 25,
+    "corridor_left_vertical": 15
   },
   "gstep": {
-    "Lab 4": 20,
-    "seStep": 10,
-    "vsteps": 15
+    "corridor_middle_main": 10,
+    "corridor_left_vertical": 15
   },
   "adsteps": {
-    "Green Room 2": 10,
-    "Zig Zag Steps": 8,
-    "Admission Office": 12
+    "Green Room 2": 15,
+    "Admission Office": 20,
+    "Exam Hall": 15,
+    "corridor_right_vertical": 10
   },
   "cdsteps": {
-    "Meeting Room": 15,
-    "Falcon Hall": 10,
-    "Symphony": 12
+    "Falcon Hall": 15,
+    "Symphony": 20,
+    "corridor_lower_main": 15
   },
   "vsteps": {
+    "VIP Waiting": 15,
+    "OAK leaf": 20,
+    "Meeting Room": 15,
+    "corridor_upper_main": 25
+  },
+  
+  // Corridor waypoint connections
+  "corridor_upper_main": {
+    "Auditorium 2": 30,
+    "Lab 1": 15,
+    "Server Room": 25,
+    "Boys RestRoom": 10,
+    "Girls RestRoom": 15,
+    "VIP Pantry": 20,
+    "Pantry": 30,
+    "AIDS": 20,
+    "Step-l2": 15,
+    "vsteps": 25,
+    "corridor_middle_main": 15
+  },
+  "corridor_middle_main": {
+    "corridor_upper_main": 15,
+    "corridor_lower_main": 15,
+    "OAT": 20,
+    "AIDS": 25,
+    "Green Room 1": 20,
+    "Green Room 2": 15,
+    "gstep": 10,
+    "Step-l2": 20,
+    "corridor_left_vertical": 20,
+    "corridor_right_vertical": 20
+  },
+  "corridor_lower_main": {
+    "corridor_middle_main": 15,
     "Lab 5": 20,
-    "OAK leaf": 15,
+    "Transport office": 10,
+    "Zig Zag Steps": 15,
+    "Falcon Hall": 20,
+    "Harmony": 25,
+    "CDC": 20,
+    "PT Room": 10,
+    "Store Room": 15,
+    "Auditorium 1": 35,
+    "Step-l5": 20,
+    "cdsteps": 15
+  },
+  "corridor_left_vertical": {
+    "Lab 2": 15,
+    "Lab 3": 10,
+    "Lab 4": 15,
+    "OAT": 5,
+    "seStep": 15,
+    "gstep": 15,
+    "corridor_middle_main": 20
+  },
+  "corridor_right_vertical": {
+    "Admin Office": 10,
+    "Reception": 15,
+    "Exam Hall": 15,
+    "Meeting Room": 20,
     "Waiting Hall": 20,
-    "gstep": 15
+    "adsteps": 10,
+    "corridor_middle_main": 20
   }
 };

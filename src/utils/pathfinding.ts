@@ -58,4 +58,54 @@ export class PathfindingEngine {
 
     return path[0] === start ? path : [];
   }
+
+  // New method to get detailed path with corridor waypoints
+  getDetailedPath(waypoints: { [key: string]: { x: number, y: number } }, path: string[]): { x: number, y: number }[] {
+    if (path.length === 0) return [];
+
+    const detailedPath: { x: number, y: number }[] = [];
+    
+    for (let i = 0; i < path.length - 1; i++) {
+      const start = waypoints[path[i]];
+      const end = waypoints[path[i + 1]];
+      
+      detailedPath.push(start);
+      
+      // Add intermediate points for corridor navigation
+      const corridorPoints = this.getCorridorPoints(start, end);
+      detailedPath.push(...corridorPoints);
+    }
+    
+    // Add the final destination
+    if (path.length > 0) {
+      detailedPath.push(waypoints[path[path.length - 1]]);
+    }
+    
+    return detailedPath;
+  }
+
+  private getCorridorPoints(start: { x: number, y: number }, end: { x: number, y: number }): { x: number, y: number }[] {
+    const points: { x: number, y: number }[] = [];
+    
+    // Calculate if we need to navigate around building structures
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    
+    // If moving both horizontally and vertically, create L-shaped path
+    if (Math.abs(dx) > 50 && Math.abs(dy) > 50) {
+      // Determine if we should go horizontal first or vertical first
+      // This logic can be enhanced based on actual building layout
+      
+      // For now, we'll prefer horizontal movement first in main corridors
+      if (start.y > 300 && start.y < 600) { // Lower corridor
+        points.push({ x: end.x, y: start.y }); // Go horizontal first
+      } else if (start.y > 150 && start.y < 250) { // Upper corridor
+        points.push({ x: end.x, y: start.y }); // Go horizontal first
+      } else {
+        points.push({ x: start.x, y: end.y }); // Go vertical first
+      }
+    }
+    
+    return points;
+  }
 }

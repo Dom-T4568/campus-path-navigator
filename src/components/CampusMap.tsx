@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -126,45 +125,55 @@ const CampusMap = () => {
     setZoom(1);
   };
 
-  const renderPathWithMinusSymbols = () => {
+  const renderPathWithCorridors = () => {
     if (path.length === 0) return null;
 
+    const pathfinder = new PathfindingEngine(GRAPH);
+    const detailedPath = pathfinder.getDetailedPath(WAYPOINTS, path);
+    
     const pathElements = [];
-    for (let i = 0; i < path.length - 1; i++) {
-      const start = WAYPOINTS[path[i]];
-      const end = WAYPOINTS[path[i + 1]];
+    
+    // Draw the actual path lines following corridors
+    for (let i = 0; i < detailedPath.length - 1; i++) {
+      const start = detailedPath[i];
+      const end = detailedPath[i + 1];
       
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const angle = Math.atan2(dy, dx);
-      
-      const symbolCount = Math.floor(distance / 25);
-      
-      for (let j = 0; j <= symbolCount; j++) {
-        const ratio = j / symbolCount;
-        const x = start.x + dx * ratio;
-        const y = start.y + dy * ratio;
-        
-        pathElements.push(
-          <text
-            key={`minus-${i}-${j}`}
-            x={x}
-            y={y + 4}
-            textAnchor="middle"
-            className="fill-blue-400 font-bold animate-pulse"
-            style={{ 
-              fontSize: '28px',
-              transform: `rotate(${angle}rad)`,
-              transformOrigin: `${x}px ${y}px`,
-              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'
-            }}
-          >
-            −
-          </text>
-        );
-      }
+      pathElements.push(
+        <line
+          key={`path-line-${i}`}
+          x1={start.x}
+          y1={start.y}
+          x2={end.x}
+          y2={end.y}
+          stroke="#3b82f6"
+          strokeWidth="4"
+          strokeDasharray="8,4"
+          className="animate-pulse"
+          style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+        />
+      );
     }
+    
+    // Add direction arrows along the path
+    for (let i = 0; i < detailedPath.length - 1; i++) {
+      const start = detailedPath[i];
+      const end = detailedPath[i + 1];
+      const midX = (start.x + end.x) / 2;
+      const midY = (start.y + end.y) / 2;
+      const angle = Math.atan2(end.y - start.y, end.x - start.x);
+      
+      pathElements.push(
+        <g key={`arrow-${i}`} transform={`translate(${midX},${midY}) rotate(${angle * 180 / Math.PI})`}>
+          <polygon
+            points="-8,-4 8,0 -8,4"
+            fill="#3b82f6"
+            className="animate-pulse"
+            style={{ filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))' }}
+          />
+        </g>
+      );
+    }
+    
     return <g>{pathElements}</g>;
   };
 
@@ -368,34 +377,41 @@ const CampusMap = () => {
                 style={{ imageRendering: 'crisp-edges' }}
               />
 
-              {Object.entries(WAYPOINTS).map(([room, coords]) => (
-                <g key={room}>
-                  <circle
-                    cx={coords.x}
-                    cy={coords.y}
-                    r="10"
-                    fill="#ef4444"
-                    stroke="#ffffff"
-                    strokeWidth="3"
-                    className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-110"
-                    filter="url(#glow)"
-                  />
-                  <text
-                    x={coords.x}
-                    y={coords.y - 18}
-                    textAnchor="middle"
-                    className="text-xs font-bold fill-white pointer-events-none"
-                    style={{ 
-                      fontSize: '11px',
-                      filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))'
-                    }}
-                  >
-                    {room}
-                  </text>
-                </g>
-              ))}
+              {/* Render corridor-based path */}
+              {renderPathWithCorridors()}
 
-              {renderPathWithMinusSymbols()}
+              {/* Room waypoints */}
+              {Object.entries(WAYPOINTS).map(([room, coords]) => {
+                // Only show actual rooms, not corridor waypoints
+                if (room.startsWith('corridor_')) return null;
+                
+                return (
+                  <g key={room}>
+                    <circle
+                      cx={coords.x}
+                      cy={coords.y}
+                      r="10"
+                      fill="#ef4444"
+                      stroke="#ffffff"
+                      strokeWidth="3"
+                      className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-110"
+                      filter="url(#glow)"
+                    />
+                    <text
+                      x={coords.x}
+                      y={coords.y - 18}
+                      textAnchor="middle"
+                      className="text-xs font-bold fill-white pointer-events-none"
+                      style={{ 
+                        fontSize: '11px',
+                        filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))'
+                      }}
+                    >
+                      {room}
+                    </text>
+                  </g>
+                );
+              })}
             </g>
           </svg>
 
