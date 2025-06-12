@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { PathfindingEngine } from '../utils/pathfinding';
 import { ROOMS, WAYPOINTS, GRAPH } from '../data/mapData';
 import LoadingPage from './LoadingPage';
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, Menu, X, Home, Route, Maximize2, Minimize2 } from 'lucide-react';
 
 const CampusMap = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [startRoom, setStartRoom] = useState<string | undefined>(undefined);
   const [endRoom, setEndRoom] = useState<string | undefined>(undefined);
   const [path, setPath] = useState<string[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -19,13 +21,18 @@ const CampusMap = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Simulate loading time
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
-
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-close sidebar on mobile after selection
+  useEffect(() => {
+    if (window.innerWidth < 768 && startRoom && endRoom) {
+      setIsSidebarOpen(false);
+    }
+  }, [startRoom, endRoom]);
 
   const drawPath = (shortestPath: string[]) => {
     if (shortestPath.length > 0) {
@@ -70,26 +77,69 @@ const CampusMap = () => {
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom((prevZoom) => Math.max(0.5, Math.min(3, prevZoom * scaleFactor)));
+    setZoom((prevZoom) => Math.max(0.3, Math.min(3, prevZoom * scaleFactor)));
+  };
+
+  // Touch events for mobile
+  const [lastTouchDistance, setLastTouchDistance] = useState(0);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      setLastTouchDistance(distance);
+    } else if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.touches[0].clientX - pan.x, 
+        y: e.touches[0].clientY - pan.y 
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scaleFactor = distance / lastTouchDistance;
+      setZoom((prevZoom) => Math.max(0.3, Math.min(3, prevZoom * scaleFactor)));
+      setLastTouchDistance(distance);
+    } else if (e.touches.length === 1 && isDragging) {
+      setPan({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const resetView = () => {
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
   };
 
   const renderPathWithMinusSymbols = () => {
     if (path.length === 0) return null;
 
     const pathElements = [];
-
     for (let i = 0; i < path.length - 1; i++) {
       const start = WAYPOINTS[path[i]];
       const end = WAYPOINTS[path[i + 1]];
       
-      // Calculate the distance and angle between points
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const angle = Math.atan2(dy, dx);
       
-      // Number of minus symbols to place along the line
-      const symbolCount = Math.floor(distance / 20); // Slightly more spacing
+      const symbolCount = Math.floor(distance / 25);
       
       for (let j = 0; j <= symbolCount; j++) {
         const ratio = j / symbolCount;
@@ -100,14 +150,14 @@ const CampusMap = () => {
           <text
             key={`minus-${i}-${j}`}
             x={x}
-            y={y + 3}
+            y={y + 4}
             textAnchor="middle"
-            className="fill-blue-500 font-bold animate-pulse"
+            className="fill-blue-400 font-bold animate-pulse"
             style={{ 
-              fontSize: '24px', // Increased size
+              fontSize: '28px',
               transform: `rotate(${angle}rad)`,
               transformOrigin: `${x}px ${y}px`,
-              filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))'
+              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'
             }}
           >
             −
@@ -115,7 +165,6 @@ const CampusMap = () => {
         );
       }
     }
-
     return <g>{pathElements}</g>;
   };
 
@@ -124,19 +173,44 @@ const CampusMap = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      {/* Dark Sidebar */}
-      <div className="w-80 bg-gray-800 text-white flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-700">
+    <div className={`min-h-screen bg-gray-900 flex ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <MapPin className="w-6 h-6 text-blue-400" />
+            <h1 className="text-lg font-bold text-white">Campus Navigator</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="text-white hover:bg-gray-700"
+          >
+            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div className={`
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        fixed md:relative z-30 w-80 h-full md:h-auto
+        bg-gray-900 text-white flex flex-col
+        transition-transform duration-300 ease-in-out
+        ${isFullscreen ? 'hidden' : ''}
+      `}>
+        {/* Desktop Header */}
+        <div className="hidden md:block p-6 border-b border-gray-700">
           <div className="flex items-center gap-3 mb-2">
             <MapPin className="w-6 h-6 text-blue-400" />
-            <h1 className="text-xl font-bold">College Blueprint Navigator</h1>
+            <h1 className="text-xl font-bold">Campus Navigator</h1>
           </div>
+          <p className="text-sm text-gray-400">Find your way around campus</p>
         </div>
 
         {/* Navigation Section */}
-        <div className="p-6 flex-1">
+        <div className="p-6 flex-1 mt-16 md:mt-0">
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Navigation className="w-5 h-5 text-blue-400" />
@@ -146,16 +220,16 @@ const CampusMap = () => {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-blue-400" />
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                   <label className="text-sm font-medium">Starting Point</label>
                 </div>
                 <Select value={startRoom} onValueChange={setStartRoom}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700 transition-colors">
                     <SelectValue placeholder="Select starting point" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-800 border-gray-600">
                     {ROOMS.map((room) => (
-                      <SelectItem key={room} value={room}>
+                      <SelectItem key={room} value={room} className="text-white hover:bg-gray-700">
                         {room}
                       </SelectItem>
                     ))}
@@ -165,16 +239,16 @@ const CampusMap = () => {
 
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-red-400" />
+                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                   <label className="text-sm font-medium">Destination</label>
                 </div>
                 <Select value={endRoom} onValueChange={setEndRoom}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700 transition-colors">
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-800 border-gray-600">
                     {ROOMS.map((room) => (
-                      <SelectItem key={room} value={room}>
+                      <SelectItem key={room} value={room} className="text-white hover:bg-gray-700">
                         {room}
                       </SelectItem>
                     ))}
@@ -185,88 +259,113 @@ const CampusMap = () => {
               <Button 
                 onClick={handleFindPath} 
                 disabled={!startRoom || !endRoom}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
               >
+                <Route className="w-4 h-4 mr-2" />
                 Find Route
               </Button>
 
               <Button 
                 variant="outline" 
                 onClick={clearPath}
-                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all duration-200"
               >
-                Clear
+                Clear Path
               </Button>
             </div>
           </div>
 
-          {/* How to Use Section */}
+          {/* Quick Actions */}
           <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">How to Use</h3>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
-                <span>Select a starting point from the dropdown</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
-                <span>Select a destination from the dropdown</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
-                <span>Click "Find Route" to calculate the path</span>
-              </li>
-            </ul>
+            <h3 className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wide">Quick Actions</h3>
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                onClick={resetView}
+                className="w-full justify-start text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Reset View
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-700">
-          <p className="text-xs text-gray-400">© 2025 College Blueprint Navigator • Interactive Campus Navigation</p>
-        </div>
       </div>
+
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-20"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Map Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Status Bar */}
-        <div className="bg-white shadow-sm p-4 border-b">
+        <div className={`bg-gray-800 shadow-lg p-4 border-b border-gray-700 ${isFullscreen ? 'hidden' : ''} mt-16 md:mt-0`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               {startRoom && (
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Start: {startRoom}</span>
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-white">Start: {startRoom}</span>
                 </div>
               )}
               {endRoom && (
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Destination: {endRoom}</span>
+                  <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-white">Destination: {endRoom}</span>
                 </div>
               )}
             </div>
-            <div className="text-sm text-gray-500">
-              Use mouse wheel to zoom • Drag to pan
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block text-sm text-gray-400">
+                Pinch to zoom • Drag to pan
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Map Container */}
-        <div className="flex-1 relative bg-gray-50">
+        <div className="flex-1 relative bg-gray-900 overflow-hidden">
           <svg
             ref={svgRef}
-            className="w-full h-full cursor-move"
+            className="w-full h-full cursor-move select-none"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'none' }}
           >
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <image
                 href="/lovable-uploads/5b8bdca8-5b1e-47fe-9e07-546fe9d7f12a.png"
                 width="1200"
                 height="800"
                 className="max-w-none"
+                style={{ imageRendering: 'crisp-edges' }}
               />
 
               {Object.entries(WAYPOINTS).map(([room, coords]) => (
@@ -274,18 +373,22 @@ const CampusMap = () => {
                   <circle
                     cx={coords.x}
                     cy={coords.y}
-                    r="8"
+                    r="10"
                     fill="#ef4444"
                     stroke="#ffffff"
-                    strokeWidth="2"
-                    className="hover:fill-red-600 cursor-pointer"
+                    strokeWidth="3"
+                    className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-110"
+                    filter="url(#glow)"
                   />
                   <text
                     x={coords.x}
-                    y={coords.y - 15}
+                    y={coords.y - 18}
                     textAnchor="middle"
-                    className="text-xs font-medium fill-gray-800"
-                    style={{ fontSize: '10px' }}
+                    className="text-xs font-bold fill-white pointer-events-none"
+                    style={{ 
+                      fontSize: '11px',
+                      filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))'
+                    }}
                   >
                     {room}
                   </text>
@@ -295,6 +398,26 @@ const CampusMap = () => {
               {renderPathWithMinusSymbols()}
             </g>
           </svg>
+
+          {/* Zoom Controls */}
+          <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setZoom(prev => Math.min(3, prev * 1.2))}
+              className="bg-gray-800/90 backdrop-blur-sm hover:bg-gray-700 text-white border-gray-600"
+            >
+              +
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setZoom(prev => Math.max(0.3, prev * 0.8))}
+              className="bg-gray-800/90 backdrop-blur-sm hover:bg-gray-700 text-white border-gray-600"
+            >
+              −
+            </Button>
+          </div>
         </div>
       </div>
     </div>
