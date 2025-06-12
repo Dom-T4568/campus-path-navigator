@@ -10,7 +10,7 @@ export const ROOMS = [
   "seStep", "gstep", "adsteps", "cdsteps", "vsteps"
 ];
 
-// Enhanced waypoint coordinates with corridor intersections
+// Enhanced waypoint coordinates with more corridor intersections for proper pathfinding
 export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "Auditorium 1": { x: 235, y: 555 },
   "Auditorium 2": { x: 235, y: 160 },
@@ -56,270 +56,298 @@ export const WAYPOINTS: { [key: string]: { x: number, y: number } } = {
   "cdsteps": { x: 950, y: 505 },
   "vsteps": { x: 940, y: 210 },
   
-  // Additional corridor waypoints to ensure proper navigation
-  "corridor_upper_main": { x: 600, y: 210 },
-  "corridor_middle_main": { x: 600, y: 360 },
-  "corridor_lower_main": { x: 600, y: 505 },
-  "corridor_left_vertical": { x: 320, y: 360 },
-  "corridor_right_vertical": { x: 875, y: 360 },
-  "corridor_center_hub": { x: 600, y: 360 }
+  // Strategic corridor waypoints that define the actual pathways
+  "upper_corridor_left": { x: 280, y: 210 },
+  "upper_corridor_center": { x: 550, y: 210 },
+  "upper_corridor_right": { x: 900, y: 210 },
+  "middle_corridor_left": { x: 320, y: 360 },
+  "middle_corridor_center": { x: 550, y: 360 },
+  "middle_corridor_right": { x: 875, y: 360 },
+  "lower_corridor_left": { x: 350, y: 505 },
+  "lower_corridor_center": { x: 650, y: 505 },
+  "lower_corridor_right": { x: 950, y: 505 },
+  "vertical_left_upper": { x: 320, y: 250 },
+  "vertical_left_lower": { x: 320, y: 450 },
+  "vertical_center": { x: 550, y: 300 },
+  "vertical_right_upper": { x: 875, y: 280 },
+  "vertical_right_lower": { x: 875, y: 420 }
 };
 
-// Enhanced graph with better corridor connections
+// Completely redesigned graph to ensure paths only follow corridors and hallways
 export const GRAPH: { [key: string]: { [key: string]: number } } = {
+  // Upper corridor connections (horizontal pathway)
   "Auditorium 2": {
-    "Lab 2": 20,
-    "corridor_upper_main": 30
+    "upper_corridor_left": 10
   },
   "Lab 2": {
-    "Auditorium 2": 20,
-    "Lab 1": 20,
-    "Server Room": 15,
-    "corridor_left_vertical": 15
-  },
-  "Lab 1": {
-    "Lab 2": 20,
-    "corridor_upper_main": 15,
-    "AIDS": 15
-  },
-  "Lab 3": {
-    "corridor_left_vertical": 10,
-    "Lab 4": 15,
-    "OAT": 10
-  },
-  "Lab 4": {
-    "Lab 3": 15,
-    "Lab 5": 15,
-    "corridor_left_vertical": 15
-  },
-  "Lab 5": {
-    "Lab 4": 15,
-    "corridor_lower_main": 20,
-    "Step-l5": 15
+    "upper_corridor_left": 8
   },
   "Server Room": {
-    "Lab 2": 15,
-    "corridor_upper_main": 25
+    "upper_corridor_left": 5
+  },
+  "upper_corridor_left": {
+    "Auditorium 2": 10,
+    "Lab 2": 8,
+    "Server Room": 5,
+    "upper_corridor_center": 15,
+    "vertical_left_upper": 8
+  },
+  "Lab 1": {
+    "upper_corridor_center": 8
+  },
+  "Step-l2": {
+    "upper_corridor_center": 10
   },
   "Boys RestRoom": {
-    "corridor_upper_main": 10,
-    "Girls RestRoom": 20
+    "upper_corridor_center": 12
+  },
+  "upper_corridor_center": {
+    "upper_corridor_left": 15,
+    "upper_corridor_right": 20,
+    "Lab 1": 8,
+    "Step-l2": 10,
+    "Boys RestRoom": 12,
+    "vertical_center": 12
   },
   "Girls RestRoom": {
-    "Boys RestRoom": 20,
-    "corridor_upper_main": 15
+    "upper_corridor_right": 8
   },
   "VIP Pantry": {
-    "corridor_upper_main": 20,
-    "VIP Waiting": 10
+    "upper_corridor_right": 10
   },
   "VIP Waiting": {
+    "upper_corridor_right": 12
+  },
+  "vsteps": {
+    "upper_corridor_right": 8
+  },
+  "upper_corridor_right": {
+    "upper_corridor_center": 20,
+    "Girls RestRoom": 8,
     "VIP Pantry": 10,
-    "vsteps": 15
+    "VIP Waiting": 12,
+    "vsteps": 8,
+    "Pantry": 15,
+    "Principle Office": 20,
+    "vertical_right_upper": 10
   },
   "Pantry": {
-    "corridor_upper_main": 30,
-    "Principle Office": 15
-  },
-  "VIP Dining": {
-    "Chairman Office": 10,
-    "Master Board Room": 10
-  },
-  "Chairman Office": {
-    "VIP Dining": 10,
-    "Principle Office": 10
+    "upper_corridor_right": 15,
+    "Principle Office": 8
   },
   "Principle Office": {
-    "Chairman Office": 10,
-    "Pantry": 15,
-    "OAK leaf": 15
+    "upper_corridor_right": 20,
+    "Pantry": 8,
+    "OAK leaf": 5,
+    "Chairman Office": 5
   },
-  "OAT": {
-    "Lab 3": 10,
-    "corridor_left_vertical": 5,
-    "corridor_middle_main": 20
+  "Chairman Office": {
+    "Principle Office": 5,
+    "VIP Dining": 3
   },
-  "AIDS": {
-    "Lab 1": 15,
-    "corridor_upper_main": 20,
-    "corridor_middle_main": 25
-  },
-  "Green Room 1": {
-    "corridor_middle_main": 20,
-    "Green Room 2": 15
-  },
-  "Green Room 2": {
-    "Green Room 1": 15,
-    "corridor_middle_main": 15,
-    "adsteps": 15
-  },
-  "Admin Office": {
-    "corridor_right_vertical": 10,
-    "Reception": 20
-  },
-  "Reception": {
-    "Admin Office": 20,
-    "Master Board Room": 15,
-    "corridor_right_vertical": 15
-  },
-  "Master Board Room": {
-    "VIP Dining": 10,
-    "OAK leaf": 10,
-    "Reception": 15
+  "VIP Dining": {
+    "Chairman Office": 3
   },
   "OAK leaf": {
-    "Principle Office": 15,
-    "Master Board Room": 10,
-    "vsteps": 20
+    "Principle Office": 5,
+    "Master Board Room": 5
+  },
+  "Master Board Room": {
+    "OAK leaf": 5,
+    "Reception": 8
+  },
+
+  // Middle corridor connections (horizontal pathway)
+  "middle_corridor_left": {
+    "OAT": 5,
+    "middle_corridor_center": 15,
+    "vertical_left_upper": 15,
+    "vertical_left_lower": 15
+  },
+  "OAT": {
+    "middle_corridor_left": 5,
+    "Lab 3": 8
+  },
+  "Lab 3": {
+    "OAT": 8,
+    "vertical_left_upper": 10
+  },
+  "AIDS": {
+    "middle_corridor_center": 12,
+    "vertical_center": 8
+  },
+  "gstep": {
+    "middle_corridor_center": 5
+  },
+  "middle_corridor_center": {
+    "middle_corridor_left": 15,
+    "middle_corridor_right": 20,
+    "AIDS": 12,
+    "gstep": 5,
+    "Green Room 1": 10,
+    "vertical_center": 5
+  },
+  "Green Room 1": {
+    "middle_corridor_center": 10,
+    "Green Room 2": 12
+  },
+  "Green Room 2": {
+    "Green Room 1": 12,
+    "middle_corridor_right": 15
+  },
+  "adsteps": {
+    "middle_corridor_right": 5
+  },
+  "middle_corridor_right": {
+    "middle_corridor_center": 20,
+    "Green Room 2": 15,
+    "adsteps": 5,
+    "Exam Hall": 10,
+    "Meeting Room": 12,
+    "vertical_right_upper": 8,
+    "vertical_right_lower": 15
   },
   "Exam Hall": {
-    "corridor_right_vertical": 15,
-    "Meeting Room": 15,
-    "adsteps": 15
+    "middle_corridor_right": 10,
+    "vertical_right_upper": 12
   },
   "Meeting Room": {
-    "Exam Hall": 15,
-    "corridor_right_vertical": 20,
-    "vsteps": 15
+    "middle_corridor_right": 12,
+    "vertical_right_upper": 8
+  },
+  "Reception": {
+    "Master Board Room": 8,
+    "Admin Office": 15,
+    "Waiting Hall": 10,
+    "vertical_right_lower": 12
+  },
+  "Admin Office": {
+    "Reception": 15,
+    "vertical_right_lower": 8
+  },
+  "Waiting Hall": {
+    "Reception": 10,
+    "vertical_right_lower": 10
+  },
+
+  // Lower corridor connections (horizontal pathway)
+  "Lab 5": {
+    "lower_corridor_left": 8
+  },
+  "Lab 4": {
+    "vertical_left_lower": 10
+  },
+  "lower_corridor_left": {
+    "Lab 5": 8,
+    "Step-l5": 15,
+    "lower_corridor_center": 18,
+    "vertical_left_lower": 12
+  },
+  "Step-l5": {
+    "lower_corridor_left": 15,
+    "lower_corridor_center": 12
+  },
+  "PT Room": {
+    "lower_corridor_center": 8
+  },
+  "Store Room": {
+    "lower_corridor_center": 10
   },
   "Transport office": {
-    "corridor_lower_main": 10,
-    "Zig Zag Steps": 15
+    "lower_corridor_center": 12
+  },
+  "lower_corridor_center": {
+    "lower_corridor_left": 18,
+    "lower_corridor_right": 20,
+    "Step-l5": 12,
+    "PT Room": 8,
+    "Store Room": 10,
+    "Transport office": 12,
+    "Zig Zag Steps": 8
   },
   "Zig Zag Steps": {
-    "Transport office": 15,
+    "lower_corridor_center": 8,
     "Admission Office": 15,
-    "corridor_lower_main": 15
+    "lower_corridor_right": 18
   },
   "Admission Office": {
     "Zig Zag Steps": 15,
-    "Falcon Hall": 15,
-    "adsteps": 20
+    "Falcon Hall": 12,
+    "lower_corridor_right": 12
   },
   "Falcon Hall": {
-    "Admission Office": 15,
-    "corridor_lower_main": 20,
-    "cdsteps": 15
-  },
-  "Harmony": {
-    "CDC": 10,
-    "corridor_lower_main": 25
-  },
-  "CDC": {
-    "Harmony": 10,
-    "Symphony": 15,
-    "corridor_lower_main": 20
-  },
-  "Symphony": {
-    "CDC": 15,
-    "cdsteps": 20
-  },
-  "Waiting Hall": {
-    "Reception": 25,
-    "corridor_right_vertical": 20
-  },
-  "Step-l2": {
-    "corridor_upper_main": 15,
-    "corridor_middle_main": 20
-  },
-  "Step-l5": {
-    "Lab 5": 15,
-    "corridor_lower_main": 20
-  },
-  "PT Room": {
-    "corridor_lower_main": 10,
-    "Store Room": 10
-  },
-  "Store Room": {
-    "PT Room": 10,
-    "corridor_lower_main": 15
-  },
-  "Auditorium 1": {
-    "seStep": 25,
-    "corridor_lower_main": 35
-  },
-  "seStep": {
-    "Auditorium 1": 25,
-    "corridor_left_vertical": 15
-  },
-  "gstep": {
-    "corridor_middle_main": 10,
-    "corridor_left_vertical": 15
-  },
-  "adsteps": {
-    "Green Room 2": 15,
-    "Admission Office": 20,
-    "Exam Hall": 15,
-    "corridor_right_vertical": 10
+    "Admission Office": 12,
+    "lower_corridor_right": 10,
+    "cdsteps": 8
   },
   "cdsteps": {
-    "Falcon Hall": 15,
-    "Symphony": 20,
-    "corridor_lower_main": 15
+    "Falcon Hall": 8,
+    "lower_corridor_right": 5
   },
-  "vsteps": {
-    "VIP Waiting": 15,
-    "OAK leaf": 20,
-    "Meeting Room": 15,
-    "corridor_upper_main": 25
+  "lower_corridor_right": {
+    "lower_corridor_center": 20,
+    "Zig Zag Steps": 18,
+    "Admission Office": 12,
+    "Falcon Hall": 10,
+    "cdsteps": 5,
+    "CDC": 8,
+    "Harmony": 15,
+    "Symphony": 20
   },
-  
-  // Corridor waypoint connections
-  "corridor_upper_main": {
-    "Auditorium 2": 30,
-    "Lab 1": 15,
-    "Server Room": 25,
-    "Boys RestRoom": 10,
-    "Girls RestRoom": 15,
-    "VIP Pantry": 20,
-    "Pantry": 30,
-    "AIDS": 20,
-    "Step-l2": 15,
-    "vsteps": 25,
-    "corridor_middle_main": 15
+  "CDC": {
+    "lower_corridor_right": 8,
+    "Harmony": 8
   },
-  "corridor_middle_main": {
-    "corridor_upper_main": 15,
-    "corridor_lower_main": 15,
-    "OAT": 20,
-    "AIDS": 25,
-    "Green Room 1": 20,
-    "Green Room 2": 15,
-    "gstep": 10,
-    "Step-l2": 20,
-    "corridor_left_vertical": 20,
-    "corridor_right_vertical": 20
+  "Harmony": {
+    "lower_corridor_right": 15,
+    "CDC": 8,
+    "Symphony": 12
   },
-  "corridor_lower_main": {
-    "corridor_middle_main": 15,
-    "Lab 5": 20,
-    "Transport office": 10,
-    "Zig Zag Steps": 15,
-    "Falcon Hall": 20,
-    "Harmony": 25,
-    "CDC": 20,
-    "PT Room": 10,
-    "Store Room": 15,
-    "Auditorium 1": 35,
-    "Step-l5": 20,
-    "cdsteps": 15
+  "Symphony": {
+    "lower_corridor_right": 20,
+    "Harmony": 12
   },
-  "corridor_left_vertical": {
-    "Lab 2": 15,
+
+  // Vertical corridor connections
+  "vertical_left_upper": {
+    "upper_corridor_left": 8,
+    "middle_corridor_left": 15,
     "Lab 3": 10,
-    "Lab 4": 15,
-    "OAT": 5,
-    "seStep": 15,
-    "gstep": 15,
-    "corridor_middle_main": 20
+    "vertical_left_lower": 20
   },
-  "corridor_right_vertical": {
-    "Admin Office": 10,
-    "Reception": 15,
-    "Exam Hall": 15,
-    "Meeting Room": 20,
-    "Waiting Hall": 20,
-    "adsteps": 10,
-    "corridor_middle_main": 20
+  "vertical_left_lower": {
+    "vertical_left_upper": 20,
+    "middle_corridor_left": 15,
+    "lower_corridor_left": 12,
+    "Lab 4": 10
+  },
+  "vertical_center": {
+    "upper_corridor_center": 12,
+    "middle_corridor_center": 5,
+    "AIDS": 8
+  },
+  "vertical_right_upper": {
+    "upper_corridor_right": 10,
+    "middle_corridor_right": 8,
+    "Meeting Room": 8,
+    "Exam Hall": 12,
+    "vertical_right_lower": 15
+  },
+  "vertical_right_lower": {
+    "vertical_right_upper": 15,
+    "middle_corridor_right": 15,
+    "Reception": 12,
+    "Admin Office": 8,
+    "Waiting Hall": 10
+  },
+
+  // Special connections for steps and unique areas
+  "seStep": {
+    "Auditorium 1": 15,
+    "middle_corridor_left": 20
+  },
+  "Auditorium 1": {
+    "seStep": 15,
+    "lower_corridor_left": 25
   }
 };

@@ -35,19 +35,21 @@ export class PathfindingEngine {
 
       unvisited.delete(current);
 
-      // Update distances to neighbors
-      for (const neighbor in this.graph[current]) {
-        if (unvisited.has(neighbor)) {
-          const newDistance = distances[current] + this.graph[current][neighbor];
-          if (newDistance < distances[neighbor]) {
-            distances[neighbor] = newDistance;
-            previous[neighbor] = current;
+      // Only update distances to nodes that are explicitly connected in the graph
+      if (this.graph[current]) {
+        for (const neighbor in this.graph[current]) {
+          if (unvisited.has(neighbor)) {
+            const newDistance = distances[current] + this.graph[current][neighbor];
+            if (newDistance < distances[neighbor]) {
+              distances[neighbor] = newDistance;
+              previous[neighbor] = current;
+            }
           }
         }
       }
     }
 
-    // Reconstruct path
+    // Reconstruct path - ensure it only includes valid connections
     const path: string[] = [];
     let current = end;
     
@@ -56,56 +58,53 @@ export class PathfindingEngine {
       current = previous[current];
     }
 
-    return path[0] === start ? path : [];
+    // Verify the path only uses valid graph connections
+    if (path.length > 1 && path[0] === start) {
+      for (let i = 0; i < path.length - 1; i++) {
+        const currentNode = path[i];
+        const nextNode = path[i + 1];
+        
+        // Check if there's a direct connection in the graph
+        if (!this.graph[currentNode] || !this.graph[currentNode][nextNode]) {
+          console.warn(`Invalid path segment: ${currentNode} -> ${nextNode}`);
+          return []; // Return empty path if any segment is invalid
+        }
+      }
+      return path;
+    }
+
+    return [];
   }
 
-  // New method to get detailed path with corridor waypoints
+  // Enhanced method to get detailed path strictly following corridors
   getDetailedPath(waypoints: { [key: string]: { x: number, y: number } }, path: string[]): { x: number, y: number }[] {
     if (path.length === 0) return [];
 
     const detailedPath: { x: number, y: number }[] = [];
     
-    for (let i = 0; i < path.length - 1; i++) {
-      const start = waypoints[path[i]];
-      const end = waypoints[path[i + 1]];
-      
-      detailedPath.push(start);
-      
-      // Add intermediate points for corridor navigation
-      const corridorPoints = this.getCorridorPoints(start, end);
-      detailedPath.push(...corridorPoints);
-    }
-    
-    // Add the final destination
-    if (path.length > 0) {
-      detailedPath.push(waypoints[path[path.length - 1]]);
+    // Only add waypoints that exist in the path - no interpolation
+    for (const nodeName of path) {
+      if (waypoints[nodeName]) {
+        detailedPath.push(waypoints[nodeName]);
+      }
     }
     
     return detailedPath;
   }
 
-  private getCorridorPoints(start: { x: number, y: number }, end: { x: number, y: number }): { x: number, y: number }[] {
-    const points: { x: number, y: number }[] = [];
+  // Method to validate if a path follows only predefined connections
+  validatePath(path: string[]): boolean {
+    if (path.length <= 1) return true;
     
-    // Calculate if we need to navigate around building structures
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    
-    // If moving both horizontally and vertically, create L-shaped path
-    if (Math.abs(dx) > 50 && Math.abs(dy) > 50) {
-      // Determine if we should go horizontal first or vertical first
-      // This logic can be enhanced based on actual building layout
+    for (let i = 0; i < path.length - 1; i++) {
+      const current = path[i];
+      const next = path[i + 1];
       
-      // For now, we'll prefer horizontal movement first in main corridors
-      if (start.y > 300 && start.y < 600) { // Lower corridor
-        points.push({ x: end.x, y: start.y }); // Go horizontal first
-      } else if (start.y > 150 && start.y < 250) { // Upper corridor
-        points.push({ x: end.x, y: start.y }); // Go horizontal first
-      } else {
-        points.push({ x: start.x, y: end.y }); // Go vertical first
+      if (!this.graph[current] || !this.graph[current][next]) {
+        return false;
       }
     }
     
-    return points;
+    return true;
   }
 }

@@ -129,11 +129,20 @@ const CampusMap = () => {
     if (path.length === 0) return null;
 
     const pathfinder = new PathfindingEngine(GRAPH);
+    
+    // Validate that the path follows only predefined connections
+    if (!pathfinder.validatePath(path)) {
+      console.warn('Invalid path detected, path may cut through buildings');
+      return null;
+    }
+
     const detailedPath = pathfinder.getDetailedPath(WAYPOINTS, path);
     
+    if (detailedPath.length === 0) return null;
+
     const pathElements = [];
     
-    // Draw the actual path lines following corridors
+    // Draw the corridor-following path lines
     for (let i = 0; i < detailedPath.length - 1; i++) {
       const start = detailedPath[i];
       const end = detailedPath[i + 1];
@@ -146,10 +155,13 @@ const CampusMap = () => {
           x2={end.x}
           y2={end.y}
           stroke="#3b82f6"
-          strokeWidth="4"
-          strokeDasharray="8,4"
+          strokeWidth="6"
+          strokeDasharray="10,5"
           className="animate-pulse"
-          style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+          style={{ 
+            filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))',
+            strokeLinecap: 'round'
+          }}
         />
       );
     }
@@ -165,12 +177,44 @@ const CampusMap = () => {
       pathElements.push(
         <g key={`arrow-${i}`} transform={`translate(${midX},${midY}) rotate(${angle * 180 / Math.PI})`}>
           <polygon
-            points="-8,-4 8,0 -8,4"
+            points="-10,-5 12,0 -10,5"
             fill="#3b82f6"
             className="animate-pulse"
             style={{ filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))' }}
           />
         </g>
+      );
+    }
+
+    // Add start and end markers
+    if (detailedPath.length > 0) {
+      const startPoint = detailedPath[0];
+      const endPoint = detailedPath[detailedPath.length - 1];
+
+      pathElements.push(
+        <circle
+          key="start-marker"
+          cx={startPoint.x}
+          cy={startPoint.y}
+          r="12"
+          fill="#22c55e"
+          stroke="#ffffff"
+          strokeWidth="3"
+          className="animate-pulse"
+        />
+      );
+
+      pathElements.push(
+        <circle
+          key="end-marker"
+          cx={endPoint.x}
+          cy={endPoint.y}
+          r="12"
+          fill="#ef4444"
+          stroke="#ffffff"
+          strokeWidth="3"
+          className="animate-pulse"
+        />
       );
     }
     
@@ -377,33 +421,33 @@ const CampusMap = () => {
                 style={{ imageRendering: 'crisp-edges' }}
               />
 
-              {/* Render corridor-based path */}
+              {/* Render corridor-following path */}
               {renderPathWithCorridors()}
 
-              {/* Room waypoints */}
+              {/* Room waypoints - only show actual rooms */}
               {Object.entries(WAYPOINTS).map(([room, coords]) => {
                 // Only show actual rooms, not corridor waypoints
-                if (room.startsWith('corridor_')) return null;
+                if (room.includes('corridor') || room.includes('vertical')) return null;
                 
                 return (
                   <g key={room}>
                     <circle
                       cx={coords.x}
                       cy={coords.y}
-                      r="10"
+                      r="8"
                       fill="#ef4444"
                       stroke="#ffffff"
-                      strokeWidth="3"
-                      className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-110"
+                      strokeWidth="2"
+                      className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-125"
                       filter="url(#glow)"
                     />
                     <text
                       x={coords.x}
-                      y={coords.y - 18}
+                      y={coords.y - 15}
                       textAnchor="middle"
                       className="text-xs font-bold fill-white pointer-events-none"
                       style={{ 
-                        fontSize: '11px',
+                        fontSize: '10px',
                         filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))'
                       }}
                     >
