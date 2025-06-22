@@ -34,10 +34,11 @@ const CampusMap = () => {
 
   const drawPath = (result: { path: string[], distance: number }) => {
     if (result.path.length > 0) {
+      console.log(`Dijkstra's path: ${result.path.join(' -> ')}`);
+      console.log(`Total corridor distance: ${result.distance.toFixed(2)} units`);
       setPathData(result);
-      console.log(`Path found with distance: ${result.distance.toFixed(2)} units`);
     } else {
-      alert("No path found between the selected rooms.");
+      alert("No corridor path found between the selected rooms.");
       setPathData({ path: [], distance: 0 });
     }
   };
@@ -126,15 +127,15 @@ const CampusMap = () => {
     setZoom(1);
   };
 
-  // Enhanced path rendering with curved dotted lines
+  // Enhanced path rendering that strictly follows corridor nodes
   const renderDijkstraPath = () => {
     if (pathData.path.length === 0) return null;
 
     const pathfinder = new PathfindingEngine(GRAPH);
     
-    // Validate that the path follows only predefined connections
+    // Validate that the path follows only corridor connections
     if (!pathfinder.validatePath(pathData.path)) {
-      console.warn('Invalid path detected');
+      console.warn('Invalid corridor path detected - path may cut through rooms');
       return null;
     }
 
@@ -144,28 +145,28 @@ const CampusMap = () => {
 
     const pathElements = [];
     
-    // Generate curved path
+    // Generate smooth curved path that follows corridor nodes only
     const curvePath = pathfinder.generateCurvedPath(detailedPath);
     
-    // Main curved dotted path
+    // Main corridor path - enhanced blue dotted line
     pathElements.push(
       <path
-        key="main-path"
+        key="corridor-path"
         d={curvePath}
-        stroke="#3b82f6"
-        strokeWidth="8"
-        strokeDasharray="15,10"
+        stroke="#2563eb"
+        strokeWidth="6"
+        strokeDasharray="12,8"
         fill="none"
         className="animate-pulse"
         style={{ 
-          filter: 'drop-shadow(3px 3px 6px rgba(0,0,0,0.5))',
+          filter: 'drop-shadow(2px 2px 4px rgba(37,99,235,0.4))',
           strokeLinecap: 'round',
           strokeLinejoin: 'round'
         }}
       />
     );
     
-    // Add direction arrows along the path
+    // Add directional arrows along the corridor path
     for (let i = 0; i < detailedPath.length - 1; i++) {
       const start = detailedPath[i];
       const end = detailedPath[i + 1];
@@ -174,68 +175,82 @@ const CampusMap = () => {
       const angle = Math.atan2(end.y - start.y, end.x - start.x);
       
       pathElements.push(
-        <g key={`arrow-${i}`} transform={`translate(${midX},${midY}) rotate(${angle * 180 / Math.PI})`}>
+        <g key={`corridor-arrow-${i}`} transform={`translate(${midX},${midY}) rotate(${angle * 180 / Math.PI})`}>
           <polygon
-            points="-12,-6 15,0 -12,6"
-            fill="#3b82f6"
+            points="-10,-5 12,0 -10,5"
+            fill="#2563eb"
             stroke="#ffffff"
             strokeWidth="1"
             className="animate-pulse"
-            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+            style={{ filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))' }}
           />
         </g>
       );
     }
 
-    // Enhanced start and end markers
+    // Enhanced start and end markers for corridor navigation
     if (detailedPath.length > 0) {
       const startPoint = detailedPath[0];
       const endPoint = detailedPath[detailedPath.length - 1];
 
-      // Start marker (Green)
+      // Start marker (Enhanced Green)
       pathElements.push(
-        <g key="start-marker">
+        <g key="corridor-start-marker">
           <circle
             cx={startPoint.x}
             cy={startPoint.y}
-            r="15"
-            fill="#22c55e"
+            r="16"
+            fill="#16a34a"
             stroke="#ffffff"
-            strokeWidth="4"
+            strokeWidth="3"
             className="animate-pulse"
-            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+            style={{ filter: 'drop-shadow(2px 2px 6px rgba(22,163,74,0.5))' }}
+          />
+          <circle
+            cx={startPoint.x}
+            cy={startPoint.y}
+            r="8"
+            fill="#ffffff"
+            className="animate-pulse"
           />
           <text
             x={startPoint.x}
-            y={startPoint.y + 4}
+            y={startPoint.y + 3}
             textAnchor="middle"
-            className="text-xs font-bold fill-white pointer-events-none"
-            style={{ fontSize: '12px' }}
+            className="text-xs font-bold fill-green-600 pointer-events-none"
+            style={{ fontSize: '10px' }}
           >
             S
           </text>
         </g>
       );
 
-      // End marker (Red)
+      // End marker (Enhanced Red)
       pathElements.push(
-        <g key="end-marker">
+        <g key="corridor-end-marker">
           <circle
             cx={endPoint.x}
             cy={endPoint.y}
-            r="15"
-            fill="#ef4444"
+            r="16"
+            fill="#dc2626"
             stroke="#ffffff"
-            strokeWidth="4"
+            strokeWidth="3"
             className="animate-pulse"
-            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+            style={{ filter: 'drop-shadow(2px 2px 6px rgba(220,38,38,0.5))' }}
+          />
+          <circle
+            cx={endPoint.x}
+            cy={endPoint.y}
+            r="8"
+            fill="#ffffff"
+            className="animate-pulse"
           />
           <text
             x={endPoint.x}
-            y={endPoint.y + 4}
+            y={endPoint.y + 3}
             textAnchor="middle"
-            className="text-xs font-bold fill-white pointer-events-none"
-            style={{ fontSize: '12px' }}
+            className="text-xs font-bold fill-red-600 pointer-events-none"
+            style={{ fontSize: '10px' }}
           >
             E
           </text>
@@ -449,8 +464,8 @@ const CampusMap = () => {
             style={{ touchAction: 'none' }}
           >
             <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <filter id="corridor-glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
                 <feMerge> 
                   <feMergeNode in="coloredBlur"/>
                   <feMergeNode in="SourceGraphic"/>
@@ -467,37 +482,38 @@ const CampusMap = () => {
                 style={{ imageRendering: 'crisp-edges' }}
               />
 
-              {/* Render Dijkstra's shortest path with curved dotted lines */}
+              {/* Render Dijkstra's corridor-following path */}
               {renderDijkstraPath()}
 
-              {/* Red dot waypoints - show all graph nodes */}
-              {Object.entries(WAYPOINTS).map(([room, coords]) => {
-                // Only show actual rooms, not internal corridor waypoints
-                if (room.includes('corridor') || room.includes('vertical')) return null;
+              {/* Corridor waypoint markers - only show room entrances and key intersections */}
+              {Object.entries(WAYPOINTS).map(([nodeName, coords]) => {
+                // Show red dots only for rooms and major corridor intersections, not internal connectors
+                const isInternalConnector = nodeName.includes('corridor') || nodeName.includes('vertical_connector');
+                if (isInternalConnector) return null;
                 
                 return (
-                  <g key={room}>
+                  <g key={nodeName}>
                     <circle
                       cx={coords.x}
                       cy={coords.y}
-                      r="8"
-                      fill="#ef4444"
+                      r="7"
+                      fill="#dc2626"
                       stroke="#ffffff"
                       strokeWidth="2"
                       className="hover:fill-red-500 cursor-pointer transition-all duration-200 transform hover:scale-125"
-                      filter="url(#glow)"
+                      filter="url(#corridor-glow)"
                     />
                     <text
                       x={coords.x}
-                      y={coords.y - 15}
+                      y={coords.y - 12}
                       textAnchor="middle"
-                      className="text-xs font-bold fill-white pointer-events-none"
+                      className="text-xs font-semibold fill-white pointer-events-none"
                       style={{ 
-                        fontSize: '10px',
+                        fontSize: '9px',
                         filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))'
                       }}
                     >
-                      {room}
+                      {nodeName}
                     </text>
                   </g>
                 );
