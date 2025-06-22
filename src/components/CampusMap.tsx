@@ -10,7 +10,7 @@ const CampusMap = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [startRoom, setStartRoom] = useState<string | undefined>(undefined);
   const [endRoom, setEndRoom] = useState<string | undefined>(undefined);
-  const [path, setPath] = useState<string[]>([]);
+  const [pathData, setPathData] = useState<{ path: string[], distance: number }>({ path: [], distance: 0 });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -26,30 +26,32 @@ const CampusMap = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-close sidebar on mobile after selection
   useEffect(() => {
     if (window.innerWidth < 768 && startRoom && endRoom) {
       setIsSidebarOpen(false);
     }
   }, [startRoom, endRoom]);
 
-  const drawPath = (shortestPath: string[]) => {
-    if (shortestPath.length > 0) {
-      setPath(shortestPath);
+  const drawPath = (result: { path: string[], distance: number }) => {
+    if (result.path.length > 0) {
+      setPathData(result);
+      console.log(`Path found with distance: ${result.distance.toFixed(2)} units`);
     } else {
       alert("No path found between the selected rooms.");
+      setPathData({ path: [], distance: 0 });
     }
   };
 
   const clearPath = () => {
-    setPath([]);
+    setPathData({ path: [], distance: 0 });
   };
 
   const handleFindPath = () => {
     if (startRoom && endRoom) {
+      console.log(`Finding path from ${startRoom} to ${endRoom} using Dijkstra's algorithm`);
       const pathfinder = new PathfindingEngine(GRAPH);
-      const shortestPath = pathfinder.findShortestPath(startRoom, endRoom);
-      drawPath(shortestPath);
+      const result = pathfinder.findShortestPath(startRoom, endRoom);
+      drawPath(result);
     } else {
       alert("Please select both a start and end room.");
     }
@@ -79,7 +81,6 @@ const CampusMap = () => {
     setZoom((prevZoom) => Math.max(0.3, Math.min(3, prevZoom * scaleFactor)));
   };
 
-  // Touch events for mobile
   const [lastTouchDistance, setLastTouchDistance] = useState(0);
   
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -125,46 +126,44 @@ const CampusMap = () => {
     setZoom(1);
   };
 
-  const renderPathWithCorridors = () => {
-    if (path.length === 0) return null;
+  // Enhanced path rendering with curved dotted lines
+  const renderDijkstraPath = () => {
+    if (pathData.path.length === 0) return null;
 
     const pathfinder = new PathfindingEngine(GRAPH);
     
     // Validate that the path follows only predefined connections
-    if (!pathfinder.validatePath(path)) {
-      console.warn('Invalid path detected, path may cut through buildings');
+    if (!pathfinder.validatePath(pathData.path)) {
+      console.warn('Invalid path detected');
       return null;
     }
 
-    const detailedPath = pathfinder.getDetailedPath(WAYPOINTS, path);
+    const detailedPath = pathfinder.getDetailedPath(WAYPOINTS, pathData.path);
     
     if (detailedPath.length === 0) return null;
 
     const pathElements = [];
     
-    // Draw the corridor-following path lines
-    for (let i = 0; i < detailedPath.length - 1; i++) {
-      const start = detailedPath[i];
-      const end = detailedPath[i + 1];
-      
-      pathElements.push(
-        <line
-          key={`path-line-${i}`}
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          stroke="#3b82f6"
-          strokeWidth="6"
-          strokeDasharray="10,5"
-          className="animate-pulse"
-          style={{ 
-            filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))',
-            strokeLinecap: 'round'
-          }}
-        />
-      );
-    }
+    // Generate curved path
+    const curvePath = pathfinder.generateCurvedPath(detailedPath);
+    
+    // Main curved dotted path
+    pathElements.push(
+      <path
+        key="main-path"
+        d={curvePath}
+        stroke="#3b82f6"
+        strokeWidth="8"
+        strokeDasharray="15,10"
+        fill="none"
+        className="animate-pulse"
+        style={{ 
+          filter: 'drop-shadow(3px 3px 6px rgba(0,0,0,0.5))',
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round'
+        }}
+      />
+    );
     
     // Add direction arrows along the path
     for (let i = 0; i < detailedPath.length - 1; i++) {
@@ -177,44 +176,70 @@ const CampusMap = () => {
       pathElements.push(
         <g key={`arrow-${i}`} transform={`translate(${midX},${midY}) rotate(${angle * 180 / Math.PI})`}>
           <polygon
-            points="-10,-5 12,0 -10,5"
+            points="-12,-6 15,0 -12,6"
             fill="#3b82f6"
+            stroke="#ffffff"
+            strokeWidth="1"
             className="animate-pulse"
-            style={{ filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))' }}
+            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
           />
         </g>
       );
     }
 
-    // Add start and end markers
+    // Enhanced start and end markers
     if (detailedPath.length > 0) {
       const startPoint = detailedPath[0];
       const endPoint = detailedPath[detailedPath.length - 1];
 
+      // Start marker (Green)
       pathElements.push(
-        <circle
-          key="start-marker"
-          cx={startPoint.x}
-          cy={startPoint.y}
-          r="12"
-          fill="#22c55e"
-          stroke="#ffffff"
-          strokeWidth="3"
-          className="animate-pulse"
-        />
+        <g key="start-marker">
+          <circle
+            cx={startPoint.x}
+            cy={startPoint.y}
+            r="15"
+            fill="#22c55e"
+            stroke="#ffffff"
+            strokeWidth="4"
+            className="animate-pulse"
+            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+          />
+          <text
+            x={startPoint.x}
+            y={startPoint.y + 4}
+            textAnchor="middle"
+            className="text-xs font-bold fill-white pointer-events-none"
+            style={{ fontSize: '12px' }}
+          >
+            S
+          </text>
+        </g>
       );
 
+      // End marker (Red)
       pathElements.push(
-        <circle
-          key="end-marker"
-          cx={endPoint.x}
-          cy={endPoint.y}
-          r="12"
-          fill="#ef4444"
-          stroke="#ffffff"
-          strokeWidth="3"
-          className="animate-pulse"
-        />
+        <g key="end-marker">
+          <circle
+            cx={endPoint.x}
+            cy={endPoint.y}
+            r="15"
+            fill="#ef4444"
+            stroke="#ffffff"
+            strokeWidth="4"
+            className="animate-pulse"
+            style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))' }}
+          />
+          <text
+            x={endPoint.x}
+            y={endPoint.y + 4}
+            textAnchor="middle"
+            className="text-xs font-bold fill-white pointer-events-none"
+            style={{ fontSize: '12px' }}
+          >
+            E
+          </text>
+        </g>
       );
     }
     
@@ -259,7 +284,7 @@ const CampusMap = () => {
             <MapPin className="w-6 h-6 text-blue-400" />
             <h1 className="text-xl font-bold">Campus Navigator</h1>
           </div>
-          <p className="text-sm text-gray-400">Find your way around campus</p>
+          <p className="text-sm text-gray-400">Dijkstra's shortest path algorithm</p>
         </div>
 
         {/* Navigation Section */}
@@ -315,7 +340,7 @@ const CampusMap = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
               >
                 <Route className="w-4 h-4 mr-2" />
-                Find Route
+                Find Shortest Path
               </Button>
 
               <Button 
@@ -325,6 +350,19 @@ const CampusMap = () => {
               >
                 Clear Path
               </Button>
+
+              {/* Path Information */}
+              {pathData.path.length > 0 && (
+                <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-600">
+                  <h3 className="text-sm font-semibold mb-2 text-blue-400">Path Info</h3>
+                  <p className="text-xs text-gray-300">
+                    Distance: {pathData.distance.toFixed(1)} units
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    Waypoints: {pathData.path.length}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -369,6 +407,14 @@ const CampusMap = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium text-white">Destination: {endRoom}</span>
+                </div>
+              )}
+              {pathData.path.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-white">
+                    Dijkstra Path: {pathData.distance.toFixed(1)} units
+                  </span>
                 </div>
               )}
             </div>
@@ -421,12 +467,12 @@ const CampusMap = () => {
                 style={{ imageRendering: 'crisp-edges' }}
               />
 
-              {/* Render corridor-following path */}
-              {renderPathWithCorridors()}
+              {/* Render Dijkstra's shortest path with curved dotted lines */}
+              {renderDijkstraPath()}
 
-              {/* Room waypoints - only show actual rooms */}
+              {/* Red dot waypoints - show all graph nodes */}
               {Object.entries(WAYPOINTS).map(([room, coords]) => {
-                // Only show actual rooms, not corridor waypoints
+                // Only show actual rooms, not internal corridor waypoints
                 if (room.includes('corridor') || room.includes('vertical')) return null;
                 
                 return (

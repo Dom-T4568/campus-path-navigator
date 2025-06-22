@@ -6,20 +6,23 @@ export class PathfindingEngine {
     this.graph = graph;
   }
 
-  findShortestPath(start: string, end: string): string[] {
+  // Enhanced Dijkstra's Algorithm implementation
+  findShortestPath(start: string, end: string): { path: string[], distance: number } {
     const distances: { [key: string]: number } = {};
     const previous: { [key: string]: string | null } = {};
     const unvisited = new Set<string>();
 
-    // Initialize distances
+    // Initialize distances - Dijkstra's algorithm step 1
     for (const node in this.graph) {
       distances[node] = node === start ? 0 : Infinity;
       previous[node] = null;
       unvisited.add(node);
     }
 
+    console.log(`Starting Dijkstra's algorithm from ${start} to ${end}`);
+
     while (unvisited.size > 0) {
-      // Find unvisited node with minimum distance
+      // Find unvisited node with minimum distance - Dijkstra's algorithm step 2
       let current = '';
       let minDistance = Infinity;
       
@@ -30,12 +33,19 @@ export class PathfindingEngine {
         }
       }
 
-      if (current === end) break;
-      if (minDistance === Infinity) break;
+      // If we reach the destination or no reachable nodes left
+      if (current === end) {
+        console.log(`Reached destination ${end} with distance ${distances[end]}`);
+        break;
+      }
+      if (minDistance === Infinity) {
+        console.warn('No path found - unreachable destination');
+        break;
+      }
 
       unvisited.delete(current);
 
-      // Only update distances to nodes that are explicitly connected in the graph
+      // Update distances to neighbors - Dijkstra's algorithm step 3
       if (this.graph[current]) {
         for (const neighbor in this.graph[current]) {
           if (unvisited.has(neighbor)) {
@@ -43,13 +53,14 @@ export class PathfindingEngine {
             if (newDistance < distances[neighbor]) {
               distances[neighbor] = newDistance;
               previous[neighbor] = current;
+              console.log(`Updated distance to ${neighbor}: ${newDistance} via ${current}`);
             }
           }
         }
       }
     }
 
-    // Reconstruct path - ensure it only includes valid connections
+    // Reconstruct path - Dijkstra's algorithm step 4
     const path: string[] = [];
     let current = end;
     
@@ -58,31 +69,32 @@ export class PathfindingEngine {
       current = previous[current];
     }
 
-    // Verify the path only uses valid graph connections
+    // Validate the path
     if (path.length > 1 && path[0] === start) {
       for (let i = 0; i < path.length - 1; i++) {
         const currentNode = path[i];
         const nextNode = path[i + 1];
         
-        // Check if there's a direct connection in the graph
         if (!this.graph[currentNode] || !this.graph[currentNode][nextNode]) {
-          console.warn(`Invalid path segment: ${currentNode} -> ${nextNode}`);
-          return []; // Return empty path if any segment is invalid
+          console.error(`Invalid path segment: ${currentNode} -> ${nextNode}`);
+          return { path: [], distance: Infinity };
         }
       }
-      return path;
+      console.log(`Found valid path: ${path.join(' -> ')} with total distance: ${distances[end]}`);
+      return { path, distance: distances[end] };
     }
 
-    return [];
+    console.warn('No valid path found');
+    return { path: [], distance: Infinity };
   }
 
-  // Enhanced method to get detailed path strictly following corridors
+  // Generate smooth curved path coordinates
   getDetailedPath(waypoints: { [key: string]: { x: number, y: number } }, path: string[]): { x: number, y: number }[] {
     if (path.length === 0) return [];
 
     const detailedPath: { x: number, y: number }[] = [];
     
-    // Only add waypoints that exist in the path - no interpolation
+    // Add all waypoints in the path
     for (const nodeName of path) {
       if (waypoints[nodeName]) {
         detailedPath.push(waypoints[nodeName]);
@@ -92,7 +104,30 @@ export class PathfindingEngine {
     return detailedPath;
   }
 
-  // Method to validate if a path follows only predefined connections
+  // Generate smooth curve between points for better visualization
+  generateCurvedPath(points: { x: number, y: number }[]): string {
+    if (points.length < 2) return '';
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      
+      if (i === 1) {
+        path += ` L ${curr.x} ${curr.y}`;
+      } else {
+        // Create smooth curves between waypoints
+        const midX = (prev.x + curr.x) / 2;
+        const midY = (prev.y + curr.y) / 2;
+        path += ` Q ${prev.x} ${prev.y} ${midX} ${midY} L ${curr.x} ${curr.y}`;
+      }
+    }
+    
+    return path;
+  }
+
+  // Validate if a path follows only predefined connections
   validatePath(path: string[]): boolean {
     if (path.length <= 1) return true;
     
